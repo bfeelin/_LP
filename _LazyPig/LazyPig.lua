@@ -18,6 +18,7 @@ LPCONFIG = {
 	HPLATE = false, 
 	RIGHT = true, 
 	ZG = 1, 
+	AQ = 1,
 	DUEL = false, 
 	NOSAVE = false, 
 	GREEN = 2, 
@@ -122,6 +123,9 @@ local LazyPigMenuStrings = {
 		[10]= "Need",
 		[11]= "Greed",
 		[12]= "Pass",
+		[80]= "Need",
+		[81]= "Greed",
+		[82]= "Pass",
 		[20]= "Dungeon",
 		[21]= "Raid",
 		[22]= "Battleground",
@@ -526,7 +530,12 @@ function LazyPig_OnEvent(event)
 		LazyPig_EndSplit()	
 			
 	elseif(event == "START_LOOT_ROLL") then
-		LazyPig_ZGRoll(arg1)
+		local curZone = GetRealZoneText()
+		if(curZone == "Zul'Gurub") then
+			LazyPig_ZGRoll(arg1)
+		elseif(curZone == "Ruins of Ahn'Qiraj") then
+			LazyPig_AQRoll(arg1)
+		end
 	
 	elseif(event == "CHAT_MSG_LOOT") then
 		if (string.find(arg1 ,"You won") or string.find(arg1 ,"You receive")) and (string.find(arg1 ,"cffa335e") or string.find(arg1, "cff0070d") or string.find(arg1, "cffff840")) and not string.find(arg1 ,"Bijou") and not string.find(arg1 ,"Idol") and not string.find(arg1 ,"Shard") then
@@ -942,6 +951,29 @@ function LazyPig_ZGRoll(id)
 		local _, name, _, quality = GetLootRollItemInfo(id);
 		if string.find(name ,"Hakkari Bijou") or string.find(name ,"Coin") then
 			RollOnLoot(id, LPCONFIG.ZG);
+			local _, _, _, hex = GetItemQualityColor(quality)
+			DEFAULT_CHAT_FRAME:AddMessage("LazyPig: Auto "..hex..RollReturn().." "..GetLootRollItemLink(id))
+			return
+		end	
+	end	
+end
+
+function LazyPig_AQRoll(id)
+	RollReturn = function()
+		local txt = ""
+		if LPCONFIG.AQ == 1 then
+			txt = "NEED"
+		elseif LPCONFIG.AQ == 2 then
+			txt = "GREED"
+		elseif LPCONFIG.AQ == 0 then
+			txt = "PASS"
+		end
+		return txt
+	end
+	if LPCONFIG.AQ then	
+		local _, name, _, quality = GetLootRollItemInfo(id);
+		if string.find(name, "Idol") or string.find(name, "Scarab") then
+			RollOnLoot(id, LPCONFIG.AQ);
 			local _, _, _, hex = GetItemQualityColor(quality)
 			DEFAULT_CHAT_FRAME:AddMessage("LazyPig: Auto "..hex..RollReturn().." "..GetLootRollItemLink(id))
 			return
@@ -1709,6 +1741,9 @@ function LazyPig_GetOption(num)
 	or num == 10 and LPCONFIG.ZG == 1		
 	or num == 11 and LPCONFIG.ZG == 2
 	or num == 12 and LPCONFIG.ZG == 0
+	or num == 80 and LPCONFIG.AQ == 1		
+	or num == 81 and LPCONFIG.AQ == 2
+	or num == 82 and LPCONFIG.AQ == 0
 	or num == 20 and LPCONFIG.WORLDDUNGEON
 	or num == 21 and LPCONFIG.WORLDRAID
 	or num == 22 and LPCONFIG.WORLDBG
@@ -1788,6 +1823,21 @@ function LazyPig_SetOption(num)
 		if not checked then LPCONFIG.ZG = nil end
 		LazyPigMenuObjects[10]:SetChecked(nil)
 		LazyPigMenuObjects[11]:SetChecked(nil)
+	elseif num == 80 then 
+		LPCONFIG.AQ = 1
+		if not checked then LPCONFIG.AQ = nil end
+		LazyPigMenuObjects[81]:SetChecked(nil)
+		LazyPigMenuObjects[82]:SetChecked(nil)
+	elseif num == 81 then 
+		LPCONFIG.AQ = 2
+		if not checked then LPCONFIG.AQ = nil end
+		LazyPigMenuObjects[80]:SetChecked(nil)
+		LazyPigMenuObjects[82]:SetChecked(nil)
+	elseif num == 82 then 
+		LPCONFIG.AQ = 0 
+		if not checked then LPCONFIG.AQ = nil end
+		LazyPigMenuObjects[80]:SetChecked(nil)
+		LazyPigMenuObjects[81]:SetChecked(nil)
 	elseif num == 20 then															
 		LPCONFIG.WORLDDUNGEON = true					--fixed
 		if not checked then LPCONFIG.WORLDDUNGEON = nil end
@@ -2115,6 +2165,8 @@ function LazyPig_ChatFrame_OnEvent(event)
 	if event == "CHAT_MSG_LOOT" or event == "CHAT_MSG_MONEY" then
 		local bijou = string.find(arg1 ,"Bijou")
 		local coin = string.find(arg1 ,"Coin")
+		local scarab = string.find(arg1, "Scarab")
+		local idol = string.find(arg1, "Idol")
 		
 		local green_roll = greenrolltime > GetTime()
 		local check_uncommon = LPCONFIG.SPAM_UNCOMMON and string.find(arg1 ,"1eff00")
@@ -2124,7 +2176,7 @@ function LazyPig_ChatFrame_OnEvent(event)
 	
 		local check1 = string.find(arg1 ,"You")
 		local check2 = string.find(arg1 ,"won") or string.find(arg1 ,"receive")
-		local check3 = LPCONFIG.ZG and (bijou or coin)
+		local check3 = (LPCONFIG.ZG or LPCONFIG.AQ) and (bijou or coin or scarab or idol)
 		local check4 = check1 and not check3 and not green_roll or check2 
 
 		if not check4 and (check_uncommon or check_rare) or check_loot and not check1 or check_money then
