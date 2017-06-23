@@ -13,7 +13,7 @@ local CheckBoxTables = {
 		[3] = { "LazyPigCheckbox12", "Pass" }
 	},
 
-	["AQ20 Roll Automation"] = {
+	["Ruins of Ahn'Qiraj Roll Automation"] = {
 		[0] = "LazyPigCheckboxGroupAQRoll",
 		[1] = { "LazyPigCheckbox80", "Need" },
 		[2] = { "LazyPigCheckbox81", "Greed" },
@@ -239,7 +239,7 @@ function LazyPig_CreateOptionsFrame()
 	local str = "Zul'Gurub Roll Automation"
 	frame.cbgroup_zgroll = CheckBoxGroup(frame, 20, -107, str, CheckBoxTables[str])
 
-	local str = "AQ20 Roll Automation"
+	local str = "Ruins of Ahn'Qiraj Roll Automation"
 	frame.cbgroup_aqroll = CheckBoxGroup(frame, 20, -168, str, CheckBoxTables[str])
 
 	local str = "World Chat Mute"
