@@ -33,7 +33,8 @@ LPCONFIG = {
 	SHIFTSPLIT = true, 
 	REZ = true, 
 	GOSSIP = true, 
-	SALVA = false
+	SALVA = false,
+	SIPHONBLESSING = true
 }
 
 BINDING_HEADER_LP_HEADER = "_LazyPig";
@@ -164,7 +165,8 @@ local LazyPigMenuStrings = {
 		[98]= "Gossip Auto Processing",
 		[99]= "Character Auto-Save",
 		[100]= "Auto Dismount",
-		[101]= "Chat Spam Filter"
+		[101]= "Chat Spam Filter",
+		[102]= "Remove Siphon Blessing"
 }
 
 function LazyPig_OnLoad()
@@ -349,6 +351,7 @@ function LazyPig_OnUpdate()
 	end
 	
 	LazyPig_CheckSalvation();
+	LazyPig_CheckSiphonBlessing();
 	ScheduleButtonClick();
 	ScheduleFunctionLaunch();
 	ScheduleItemSplit();
@@ -440,6 +443,7 @@ function LazyPig_OnEvent(event)
 		LazyPigKeybindsFrame = LazyPig_CreateKeybindsFrame()
 
 		LazyPig_CheckSalvation();
+		LazyPig_CheckSiphonBlessing();
 		Check_Bg_Status();
 		LazyPig_AutoLeaveBG();
 		LazyPig_AutoSummon();
@@ -460,6 +464,9 @@ function LazyPig_OnEvent(event)
 
 	elseif (LPCONFIG.SALVA and (event == "PLAYER_AURAS_CHANGED" or event == "UPDATE_BONUS_ACTIONBAR" and LazyPig_PlayerClass("Druid", "player") or event == "UNIT_INVENTORY_CHANGED")) then
 		LazyPig_CheckSalvation()
+		
+	elseif (LPCONFIG.SIPHONBLESSING and (event == "PLAYER_AURAS_CHANGED" and LazyPig_PlayerClass("Paladin", "player"))) then
+		LazyPig_CheckSiphonBlessing()
 		
 	elseif(event == "DUEL_REQUESTED") then
 		duel_active = true
@@ -1782,6 +1789,7 @@ function LazyPig_GetOption(num)
 	or num == 99 and LPCONFIG.NOSAVE ~= GetRealmName()
 	or num == 100 and LPCONFIG.DISMOUNT
 	or num == 101 and LPCONFIG.SPAM
+	or num == 102 and LPCONFIG.SIPHONBLESSING == 1
 	
 	or nil then
 		this:SetChecked(true);
@@ -1994,8 +2002,11 @@ function LazyPig_SetOption(num)
 		if not checked then LPCONFIG.DISMOUNT = nil end	
 	elseif num == 101 then
 		LPCONFIG.SPAM  = true
-		if not checked then LPCONFIG.SPAM  = nil end			
-		
+		if not checked then LPCONFIG.SPAM  = nil end
+	elseif num == 102 then 
+		LPCONFIG.SIPHONBLESSING = true
+		if not checked then LPCONFIG.SIPHONBLESSING = nil end
+		LazyPig_CheckSiphonBlessing()
 	else
 		--DEFAULT_CHAT_FRAME:AddMessage("DEBUG: No num assigned - "..num)
 	end
@@ -2113,6 +2124,23 @@ function LazyPig_IsShieldEquipped()
 	return false
 end
 
+function LazyPig_CancelSiphonBlessing()
+	local counter = 0
+	while GetPlayerBuff(counter) >= 0 do
+		local index, untilCancelled = GetPlayerBuff(counter)
+		if untilCancelled ~= 1 then
+			if string.find(GetPlayerBuffTexture(index), "Spell_Shadow_Charm") then
+				CancelPlayerBuff(index);
+				UIErrorsFrame:Clear();
+				UIErrorsFrame:AddMessage("Siphon Blessing Removed");
+				return
+			end
+		end
+		counter = counter + 1
+	end
+	return nil
+end
+
 function LazyPig_CancelSalvationBuff()
 	local buff = {"Spell_Holy_SealOfSalvation", "Spell_Holy_GreaterBlessingofSalvation"}
 	local counter = 0
@@ -2133,6 +2161,12 @@ function LazyPig_CancelSalvationBuff()
 		counter = counter + 1
 	end
 	return nil
+end
+
+function LazyPig_CheckSiphonBlessing()
+	if(LPCONFIG.SIPHONBLESSING == 1 and LazyPig_PlayerClass("Paladin", "player")) then
+		LazyPig_CancelSiphonBlessing()
+	end
 end
 
 function LazyPig_CheckSalvation()
